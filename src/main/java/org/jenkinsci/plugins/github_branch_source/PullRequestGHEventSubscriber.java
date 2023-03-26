@@ -72,8 +72,10 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
 
   private static final Logger LOGGER =
       Logger.getLogger(PullRequestGHEventSubscriber.class.getName());
-  private static final Pattern REPOSITORY_NAME_PATTERN =
-      Pattern.compile("https?://([^/]+)/([^/]+)/([^/]+)");
+  private static final Pattern[] REPOSITORY_NAME_PATTERNS = {
+      Pattern.compile("https?://([^/]+)/([^/]+)/([^/]+)"),
+      Pattern.compile("https?://([^/]+)/[^/]+/([^/]+)/([^/]+)"),
+  };
 
   @Override
   protected boolean isApplicable(@Nullable Item project) {
@@ -117,8 +119,14 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
           Level.FINE,
           "Received {0} for {1} from {2}",
           new Object[] {event.getGHEvent(), repoUrl, event.getOrigin()});
-      Matcher matcher = REPOSITORY_NAME_PATTERN.matcher(repoUrl);
-      if (matcher.matches()) {
+      boolean matched = false;
+      for (Pattern pattern : REPOSITORY_NAME_PATTERNS) {
+        Matcher m = pattern.matcher(repoUrl);
+        if (m.matches()){
+          matched = true;
+        }
+      }
+      if (matched) {
         final GitHubRepositoryName changedRepository = GitHubRepositoryName.create(repoUrl);
         if (changedRepository == null) {
           LOGGER.log(Level.WARNING, "Malformed repository URL {0}", repoUrl);
